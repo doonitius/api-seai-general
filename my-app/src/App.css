@@ -1,0 +1,162 @@
+.App {
+  text-align: center;
+}
+
+.App-logo {
+  height: 40vmin;
+  pointer-events: none;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .App-logo {
+    animation: App-logo-spin infinite 20s linear;
+  }
+}
+
+.App-header {
+  background-color: #282c34;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  font-size: calc(10px + 2vmin);
+  color: white;
+}
+
+.App-link {
+  color: #61dafb;
+}
+
+@keyframes App-logo-spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.navbar {
+  background-color: #303030;
+  color: #ffff;
+  padding: 5px 0px 5px 0px;
+  display: flex;
+  justify-content:space-between;
+  align-items: center;
+  position: fixed;
+  width: 100%;
+  top: 0;
+  overflow: hidden;
+  z-index: 5;
+}
+
+.searchArea {
+  /* display: flex;  */
+  justify-items: flex-end
+}
+/* long input */
+.input-1 {
+  background-color: #ffff;
+  border-radius: 3px;
+  border: none;
+  padding: 5px 15px 5px 15px;
+  margin: 5px 5px 5px 5px;
+  width: 50vw;
+}
+
+::placeholder {
+  color: #b9b9b9;
+  font-size: 12px;
+  font-weight: 500;
+}
+
+/* search button */
+.button-1 {
+  background-color: #0D99FF;
+  color: #ffff;
+  border-radius: 3px;
+  border: none;
+  padding: 7px 20px 7px 20px;
+  margin: 5px 20px 5px 10px;
+  font-size: 12px;
+}
+
+.topic-1 {
+  background-color: #303030;
+  color: #ffff;
+  border-radius: 3px;
+  border: none;
+  padding: 8px;
+  padding-right: 20px;
+  padding-left: 20px;
+  font-size: 12px;
+  align-self: flex-start;
+  margin-left: 15px;
+}
+
+.pic-1 {
+  width: 50px;
+  height: 25px;
+  margin: 0px 20px 0px 20px;
+}
+
+.sidebar {
+  text-align: left;
+  width: 200px;
+  height: 100vh;
+  padding: 50px 20px 0px 20px;
+  border-color: #E7EAEC;
+  border-style: solid;
+  border-width: 1.5px;
+  position: fixed;
+  z-index: 1;
+  background-color: #ffff;
+}
+
+.sideArea {
+  padding: 0px 0px 25px 0px;
+  border-color: #E7EAEC;
+  border-style: solid;
+  border-width: 0px 0px 1.7px 0px;
+}
+
+.topicSideArea {
+  font-weight: 500;
+  font-size: 16px;
+  padding: 20px 0px 10px 0px;
+}
+
+.sideAreaList {
+  font-weight: 300;
+  font-size: 14px;
+  padding: 0px 0px 5px 20px;
+}
+
+.FilterArea {
+  display: flex;
+  width: 100vw;
+  padding: 70px 20px 20px 270px;
+  align-items: center;
+  border-color: #E7EAEC;
+  border-style: solid;
+  border-width: 0px 0px 1.5px 0px;
+  z-index: -1;
+}
+
+.grayText {
+  color: #a6a6a6;
+  font-size: 14px;
+}
+
+.filterOption {
+  margin: 0px 0px 0px 20px;
+  padding: 5px 10px 5px 10px;
+  background-color: #ffff;
+  border-color: #E7EAEC;
+  border-style: solid;
+  border-width: 1.5px;
+  border-radius: 10px;
+  font-size: 14px;
+  font-weight: 500;
+}
