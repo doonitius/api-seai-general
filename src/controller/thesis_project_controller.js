@@ -1,7 +1,5 @@
 const { setStatusSuccess, setStatusError } = require('../middleware/response_status')
-const mime = require('mime-types')
 const httpStatus = require('../middleware/http_status')
-const azure = require('azure-storage')
 const uuid = require('uuid')
 
 const thesis_project = require('../model/thesis_project_model')
@@ -27,7 +25,7 @@ module.exports.previewDocument = async (req, res) => {
     console.log(typeof(file_name));
     if (file_name) {
       const result = await loadFile(file_name)
-      res.contentType(mime.contentType(file_name))
+      res.contentType("application/pdf")
       res.send(result)
     } else {
       throw httpStatus.NOT_FOUND
