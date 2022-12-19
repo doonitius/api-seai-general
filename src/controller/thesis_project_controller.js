@@ -22,15 +22,16 @@ module.exports.getProjectById = async (req, res) => {
 module.exports.previewDocument = async (req, res) => {
   try {
     const { file_name } = req.params
-    console.log(typeof(file_name));
     if (file_name) {
       const result = await loadFile(file_name)
-      res.contentType("application/pdf")
+      res.set({
+        'Content-Type': 'application/pdf',
+        'Content-Disposition': `attachment;filename=${file_name}.pdf`,
+      })
       res.send(result)
     } else {
       throw httpStatus.NOT_FOUND
     }
-
   } catch (error) {
     res.send(setStatusError(error, null))
   }
@@ -44,19 +45,18 @@ module.exports.createProject = async (req, res) => {
       ...req.body,
       create_dt: current_date,
       update_dt: current_date,
-      file_name: fileName
+      file_name: fileName,
     })
 
     const savedProject = await newProject.save()
 
-    if (savedProject && (req.files || req.files.thesis_file)){
+    if (savedProject && (req.files || req.files.thesis_file)) {
       await upLoadFile(req.files.thesis_file, fileName)
-
     }
 
     res.send(setStatusSuccess(httpStatus.CREATE_SUCCESS, savedProject))
   } catch (error) {
-    console.error(error);
+    console.error(error)
     res.send(setStatusError(error, null))
   }
 }
