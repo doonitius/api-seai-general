@@ -41,7 +41,7 @@ const port = process.env.PORT || 8000;
 
 db_connection().then(() => {
   server.listen(port, () => {
-    console.log('API Server is running on port' + port)
-    console.log('go to http://localhost:' + port + '/health')
+    console.log('API Server is running on port ' + port)
+    console.log('check at http://localhost:' + port + '/health')
   })
 })

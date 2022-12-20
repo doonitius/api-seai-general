@@ -9,12 +9,13 @@ const { upLoadFile, loadFile } = require('../middleware/upload_to_azure')
 module.exports.getProjectById = async (req, res) => {
   try {
     const { project_id } = req.params
-
-    const foundProject = await thesis_project.findOne({ project_id: project_id })
+    
+    const foundProject = await thesis_project.findOne({ _id: project_id }, { __v: 0 })
     if (!foundProject) throw httpStatus.NOT_EXIST
 
     res.send(setStatusSuccess(httpStatus.GET_SUCCESS, foundProject))
   } catch (error) {
+    console.log(error);
     res.send(setStatusError(error, null))
   }
 }
