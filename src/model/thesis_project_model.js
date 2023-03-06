@@ -2,21 +2,152 @@ const mongoose = require('mongoose')
 
 
 const thesis_project = mongoose.Schema({
-  project_name: {
+  document_title_en: {
     type: String,
-    required: true,
   },
-  project_abstract: {
+  document_title_th: {
     type: String,
-    required: false,
   },
-  advisor_id: {
-    type: Number,
-    required: true,
+  document_abstract_en: {
+    type: String,
+  },
+  document_abstract_th: {
+    type: String,
+  },
+  keywords_en: {
+    type: String,
+  },
+  keywords_th: {
+    type: String,
   },
   academic_year: {
     type: String,
-    required: true,
+  },
+  author_prefix_en: {
+    type: String,
+  },
+  author_firstname_en: {
+    type: String,
+  },
+  author_middlename_en: {
+    type: String,
+  },
+  author_lastname_en: {
+    type: String,
+  },
+  author_prefix_en_2: {
+    type: String,
+  },
+  author_firstname_en_2: {
+    type: String,
+  },
+  author_middlename_en_2: {
+    type: String,
+  },
+  author_lastname_en_2: {
+    type: String,
+  },
+  author_prefix_en_3: {
+    type: String,
+  },
+  author_firstname_en_3: {
+    type: String,
+  },
+  author_middlename_en_3: {
+    type: String,
+  },
+  author_lastname_en_3: {
+    type: String,
+  },
+  author_prefix_th: {
+    type: String,
+  },
+  author_firstname_th: {
+    type: String,
+  },
+  author_middlename_th: {
+    type: String,
+  },
+  author_lastname_th: {
+    type: String,
+  },
+  author_prefix_th_2: {
+    type: String,
+  },
+  author_firstname_th_2: {
+    type: String,
+  },
+  author_middlename_th_2: {
+    type: String,
+  },
+  author_lastname_th_2: {
+    type: String,
+  },
+  author_prefix_th_3: {
+    type: String,
+  },
+  author_firstname_th_3: {
+    type: String,
+  },
+  author_middlename_th_3: {
+    type: String,
+  },
+  author_lastname_th_3: {
+    type: String,
+  },
+  advisor_prefix_en: {
+    type: String,
+  },
+  advisor_firstname_en: {
+    type: String,
+  },
+  advisor_middlename_en: {
+    type: String,
+  },
+  advisor_lastname_en: {
+    type: String,
+  },
+  advisor_prefix_en_2: {
+    type: String,
+  },
+  advisor_firstname_en_2: {
+    type: String,
+  },
+  advisor_middlename_en_2: {
+    type: String,
+  },
+  advisor_lastname_en_2: {
+    type: String,
+  },
+  advisor_prefix_th: {
+    type: String,
+  },
+  advisor_firstname_th: {
+    type: String,
+  },
+  advisor_middlename_th: {
+    type: String,
+  },
+  advisor_lastname_th: {
+    type: String,
+  },
+  advisor_prefix_th_2: {
+    type: String,
+  },
+  advisor_firstname_th_2: {
+    type: String,
+  },
+  advisor_middlename_th_2: {
+    type: String,
+  },
+  advisor_lastname_th_2: {
+    type: String,
+  },
+  degree: {
+    type: String,
+  },
+  project_type: {
+    type: String,
   },
   document_path: {
     type: String,
@@ -32,8 +163,8 @@ const thesis_project = mongoose.Schema({
   },
   file_name: {
     type: String,
-    required: false
-  }
+    required: false,
+  },
 })
 
 

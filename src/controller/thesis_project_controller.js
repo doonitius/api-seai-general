@@ -6,10 +6,27 @@ const thesis_project = require('../model/thesis_project_model')
 
 const { upLoadFile, loadFile } = require('../middleware/upload_to_azure')
 
+module.exports.inquiryProject = async (req, res) => {
+  try {
+    const { search } = req.query
+
+    const foundProject = await thesis_project.find({
+      $text: {
+        $search: `${search}`
+      }
+    })
+
+    res.send(setStatusSuccess(httpStatus.GET_SUCCESS, foundProject))
+  } catch (error) {
+    console.log(error)
+    res.send(setStatusError(error, null))
+  }
+}
+
 module.exports.getProjectById = async (req, res) => {
   try {
     const { project_id } = req.params
-    
+
     const foundProject = await thesis_project.findOne({ _id: project_id }, { __v: 0 })
     if (!foundProject) throw httpStatus.NOT_EXIST
 
