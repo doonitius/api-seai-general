@@ -6,6 +6,7 @@ router.get('/filter', thesis_project.inquiryProject)
 router.get('/:project_id', thesis_project.getProjectById)
 router.get('/:file_name/preview', thesis_project.previewDocument)
 router.post('/', thesis_project.createProject)
+router.patch('/:doc_id', thesis_project.updateProject)
 
 
 module.exports = router

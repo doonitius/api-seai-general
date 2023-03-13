@@ -10,13 +10,70 @@ module.exports.inquiryProject = async (req, res) => {
   try {
     const { search } = req.query
 
-    const foundProject = await thesis_project.find({
-      $text: {
-        $search: `${search}`
-      }
-    })
+    let result
 
-    res.send(setStatusSuccess(httpStatus.GET_SUCCESS, foundProject))
+    if (search && search != '') {
+      let pipeline = [
+        {
+          $search: {
+            index: 'document',
+            compound: {
+              should: [
+                {
+                  autocomplete: {
+                    query: `${search}`,
+                    path: 'eng.document.title',
+                    fuzzy: {
+                      maxEdits: 2,
+                      prefixLength: 3,
+                    },
+                  },
+                },
+                {
+                  autocomplete: {
+                    query: `${search}`,
+                    path: 'eng.document.abstract',
+                    fuzzy: {
+                      maxEdits: 2,
+                      prefixLength: 3,
+                    },
+                  },
+                },
+                {
+                  autocomplete: {
+                    query: `${search}`,
+                    path: 'thai.document.title',
+                    fuzzy: {
+                      maxEdits: 2,
+                      prefixLength: 3,
+                    },
+                  },
+                },
+                {
+                  autocomplete: {
+                    query: `${search}`,
+                    path: 'thai.document.abstract',
+                    fuzzy: {
+                      maxEdits: 2,
+                      prefixLength: 3,
+                    },
+                  },
+                },
+              ],
+              minimumShouldMatch: 0,
+            },
+          },
+        },
+        {
+          $match: search ? {} : { $expr: { $eq: [true, true] } },
+        },
+      ]
+      result = await thesis_project.aggregate(pipeline)
+    } else {
+      result = await thesis_project.find()
+    }
+
+    res.send(setStatusSuccess(httpStatus.GET_SUCCESS, result))
   } catch (error) {
     console.log(error)
     res.send(setStatusError(error, null))
@@ -32,7 +89,7 @@ module.exports.getProjectById = async (req, res) => {
 
     res.send(setStatusSuccess(httpStatus.GET_SUCCESS, foundProject))
   } catch (error) {
-    console.log(error);
+    console.log(error)
     res.send(setStatusError(error, null))
   }
 }
@@ -57,7 +114,7 @@ module.exports.previewDocument = async (req, res) => {
 
 module.exports.createProject = async (req, res) => {
   try {
-    fileName = `${uuid.v4()}.pdf`
+    const fileName = `${uuid.v4()}.pdf`
     var current_date = new Date()
     const newProject = new thesis_project({
       ...req.body,
@@ -73,6 +130,34 @@ module.exports.createProject = async (req, res) => {
     }
 
     res.send(setStatusSuccess(httpStatus.CREATE_SUCCESS, savedProject))
+  } catch (error) {
+    console.error(error)
+    res.send(setStatusError(error, null))
+  }
+}
+
+module.exports.updateProject = async (req, res) => {
+  try {
+    const { doc_id } = res.params
+    let fileName = ``
+
+    const updatePayload = {
+      ...req.body,
+      update_dt: new Date(),
+    }
+    const updateProject = await thesis_project.updateOne({ _id: doc_id }, { $set: updatePayload })
+
+    if (updateProject && (req.files || req.files.thesis_file)) {
+      const existFile = await thesis_project.findOne({ _id: doc_id })
+      const { file_name } = existFile
+      if (file_name === null || file_name === '') {
+        fileName = `${uuid.v4()}.pdf`
+      }
+      await thesis_project.updateOne({ _id: doc_id }, { $set: { file_name: fileName } })
+      await upLoadFile(req.files.thesis_file, fileName)
+    }
+
+    res.send(setStatusSuccess(httpStatus.UPDATE_SUCCESS, null))
   } catch (error) {
     console.error(error)
     res.send(setStatusError(error, null))
