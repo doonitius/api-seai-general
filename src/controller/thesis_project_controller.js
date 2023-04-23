@@ -112,22 +112,41 @@ module.exports.previewDocument = async (req, res) => {
   }
 }
 
+module.exports.uploadProjectFile = async (req, res) => {
+  try {
+		const { project_id } = req.params
+
+		const fileName = `${uuid.v4()}.pdf`
+
+		const projectPayload = {
+			file_name: fileName,
+		}
+
+		const updateProject = await thesis_project.updateOne({ _id: project_id }, { $set: projectPayload })
+
+		if (updateProject && (req.files || req.files.thesis_file)) {
+			await upLoadFile(req.files.thesis_file, fileName)
+		}
+
+		res.send(setStatusSuccess(httpStatus.CREATE_SUCCESS, null))
+	} catch (error) {
+    res.send(setStatusError(error, null))
+  }
+}
+
 module.exports.createProject = async (req, res) => {
   try {
-    const fileName = `${uuid.v4()}.pdf`
-    var current_date = new Date()
+    // const fileName = `${uuid.v4()}.pdf`
     const newProject = new thesis_project({
       ...req.body,
-      create_dt: current_date,
-      update_dt: current_date,
-      file_name: fileName,
+      // file_name: fileName,
     })
 
     const savedProject = await newProject.save()
 
-    if (savedProject && (req.files || req.files.thesis_file)) {
-      await upLoadFile(req.files.thesis_file, fileName)
-    }
+    // if (savedProject && (req.files || req.files.thesis_file)) {
+    //   await upLoadFile(req.files.thesis_file, fileName)
+    // }
 
     res.send(setStatusSuccess(httpStatus.CREATE_SUCCESS, savedProject))
   } catch (error) {
@@ -138,26 +157,24 @@ module.exports.createProject = async (req, res) => {
 
 module.exports.updateProject = async (req, res) => {
   try {
-    const { doc_id } = res.params
-    let fileName = ``
+    const { project_id } = req.params
 
     const updatePayload = {
       ...req.body,
-      update_dt: new Date(),
     }
-    const updateProject = await thesis_project.updateOne({ _id: doc_id }, { $set: updatePayload })
+    const updateProject = await thesis_project.updateOne({ _id: project_id }, { $set: updatePayload })
 
-    if (updateProject && (req.files || req.files.thesis_file)) {
-      const existFile = await thesis_project.findOne({ _id: doc_id })
-      const { file_name } = existFile
-      if (file_name === null || file_name === '') {
-        fileName = `${uuid.v4()}.pdf`
-      }
-      await thesis_project.updateOne({ _id: doc_id }, { $set: { file_name: fileName } })
-      await upLoadFile(req.files.thesis_file, fileName)
-    }
+    // if (updateProject && (req.files || req.files.thesis_file)) {
+    //   const existFile = await thesis_project.findOne({ _id: doc_id })
+    //   const { file_name } = existFile
+    //   if (file_name === null || file_name === '') {
+    //     fileName = `${uuid.v4()}.pdf`
+    //   }
+    //   await thesis_project.updateOne({ _id: doc_id }, { $set: { file_name: fileName } })
+    //   await upLoadFile(req.files.thesis_file, fileName)
+    // }
 
-    res.send(setStatusSuccess(httpStatus.UPDATE_SUCCESS, null))
+    res.send(setStatusSuccess(httpStatus.UPDATE_SUCCESS, updateProject))
   } catch (error) {
     console.error(error)
     res.send(setStatusError(error, null))
