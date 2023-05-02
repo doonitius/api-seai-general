@@ -21,6 +21,8 @@ app.get("/health", (req, res) => {
   res.status(200).send("api-seai-general is running fine")
 })
 
+// const client = require('./config/elastic_client.js')
+
 const db_connection = async () => {
   try {
     const connect_db = await mongoose.connect(
