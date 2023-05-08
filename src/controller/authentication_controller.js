@@ -1,7 +1,7 @@
 const { setStatusSuccess, setStatusError } = require('../middleware/response_status')
 const httpStatus = require('../middleware/http_status')
 
-const { hashPassword, comparePassword, jwtGenerate, jwtRefreshTokenGenerate } = require('../middleware/auth_function')
+const { hashPassword, comparePassword, jwtGenerate, jwtRefreshTokenGenerate, verifyToken } = require('../middleware/auth_function')
 
 const user = require('../model/user_model')
 
@@ -33,10 +33,10 @@ module.exports.login = async (req, res) => {
 		const { username, password } = req.body
 
     const foundUsername = await user.findOne({ username })
-
     if (!foundUsername) {
       throw error
     }
+
 
     const passwordHashed = foundUsername.password
 
@@ -46,8 +46,8 @@ module.exports.login = async (req, res) => {
       throw error
     }
 
-    const accessToken = jwtGenerate(foundUsername.username)
-    const refreshToken = jwtRefreshTokenGenerate(foundUsername.username)
+    const accessToken = jwtGenerate(foundUsername)
+    const refreshToken = jwtRefreshTokenGenerate(foundUsername)
 
     const result = {
       username: foundUsername.username,
@@ -55,7 +55,7 @@ module.exports.login = async (req, res) => {
       refresh_token: refreshToken
     }
 
-		res.send(setStatusSuccess(httpStatus.GET_SUCCESS, result))
+		res.send(result)
 	} catch (error) {
 		res.send(setStatusError(error, null))
 	}
@@ -63,10 +63,27 @@ module.exports.login = async (req, res) => {
 
 module.exports.refresh = async (req, res) => {
 	try {
-		const { username, password } = req.body
+    let refresh_token = req.header('refresh_token')
 
-		res.send(setStatusSuccess(httpStatus.CREATE_SUCCESS, { username, password }))
+		
+		const decoded = verifyToken(refresh_token)
+		const foundUsername = await user.findOne({ username: decoded.username })
+
+		if (!foundUsername) {
+			throw new Error('User not found')
+		}
+
+		const accessToken = jwtGenerate(foundUsername)
+    const refreshToken = jwtRefreshTokenGenerate(foundUsername)
+
+		const result = {
+			username: foundUsername.username,
+			access_token: accessToken,
+			refresh_token: refreshToken,
+		}
+		res.send(result)
 	} catch (error) {
+		console.log(error);
 		res.send(setStatusError(error, null))
 	}
 }

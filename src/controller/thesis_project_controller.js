@@ -31,7 +31,7 @@ async function getSourceResult(result) {
 
 module.exports.inquiryProject = async (req, res) => {
 	try {
-		const { search } = req.query
+		const { search, academic_year, project_type, advisor_id, degree } = req.query
 
 		// let result
 
@@ -46,7 +46,7 @@ module.exports.inquiryProject = async (req, res) => {
 		//               autocomplete: {
 		//                 query: `${search}`,
 		//                 path: 'eng.document.title',
-		//                 fuzzy: {
+		//                 match: {
 		//                   maxEdits: 2,
 		//                   prefixLength: 3,
 		//                 },
@@ -56,7 +56,7 @@ module.exports.inquiryProject = async (req, res) => {
 		//               autocomplete: {
 		//                 query: `${search}`,
 		//                 path: 'eng.document.abstract',
-		//                 fuzzy: {
+		//                 match: {
 		//                   maxEdits: 2,
 		//                   prefixLength: 3,
 		//                 },
@@ -66,7 +66,7 @@ module.exports.inquiryProject = async (req, res) => {
 		//               autocomplete: {
 		//                 query: `${search}`,
 		//                 path: 'thai.document.title',
-		//                 fuzzy: {
+		//                 match: {
 		//                   maxEdits: 2,
 		//                   prefixLength: 3,
 		//                 },
@@ -76,7 +76,7 @@ module.exports.inquiryProject = async (req, res) => {
 		//               autocomplete: {
 		//                 query: `${search}`,
 		//                 path: 'thai.document.abstract',
-		//                 fuzzy: {
+		//                 match: {
 		//                   maxEdits: 2,
 		//                   prefixLength: 3,
 		//                 },
@@ -96,21 +96,261 @@ module.exports.inquiryProject = async (req, res) => {
 		//   result = await thesis_project.find()
 		// }
 
+		let queryText = {
+			bool: {
+				should: [],
+			},
+		}
+
+		if (search && search != '') {
+			queryText.bool.should.push(
+				{
+					match: {
+						'eng.document.title': {
+							query: search,
+							fuzziness: '2',
+							max_expansions: 50,
+							prefix_length: 0,
+						},
+					},
+				},
+				{
+					match: {
+						'thai.document.title': {
+							query: search,
+							fuzziness: '2',
+							max_expansions: 50,
+							prefix_length: 0,
+						},
+					},
+				},
+				{
+					match: {
+						'eng.document.abstract': {
+							query: search,
+							fuzziness: '2',
+							max_expansions: 50,
+							prefix_length: 0,
+						},
+					},
+				},
+				{
+					match: {
+						'thai.document.abstract': {
+							query: search,
+							fuzziness: '2',
+							max_expansions: 50,
+							prefix_length: 0,
+						},
+					},
+				},
+				{
+					match: {
+						'eng.document.keywords': {
+							query: search,
+							fuzziness: '2',
+							max_expansions: 50,
+							prefix_length: 0,
+						},
+					},
+				},
+				{
+					match: {
+						'thai.document.keywords': {
+							query: search,
+							fuzziness: '2',
+							max_expansions: 50,
+							prefix_length: 0,
+						},
+					},
+				},
+				{
+					match: {
+						'eng.advisor.prefix': {
+							query: search,
+							fuzziness: '2',
+							max_expansions: 50,
+							prefix_length: 0,
+						},
+					},
+				},
+				{
+					match: {
+						'thai.advisor.prefix': {
+							query: search,
+							fuzziness: '2',
+							max_expansions: 50,
+							prefix_length: 0,
+						},
+					},
+				},
+				{
+					match: {
+						'eng.advisor.first_name': {
+							query: search,
+							fuzziness: '2',
+							max_expansions: 50,
+							prefix_length: 0,
+						},
+					},
+				},
+				{
+					match: {
+						'thai.advisor.first_name': {
+							query: search,
+							fuzziness: '2',
+							max_expansions: 50,
+							prefix_length: 0,
+						},
+					},
+				},
+				{
+					match: {
+						'eng.advisor.last_name': {
+							query: search,
+							fuzziness: '2',
+							max_expansions: 50,
+							prefix_length: 0,
+						},
+					},
+				},
+				{
+					match: {
+						'thai.advisor.last_name': {
+							query: search,
+							fuzziness: '2',
+							max_expansions: 50,
+							prefix_length: 0,
+						},
+					},
+				},
+				{
+					match: {
+						'eng.author.prefix': {
+							query: search,
+							fuzziness: '2',
+							max_expansions: 50,
+							prefix_length: 0,
+						},
+					},
+				},
+				{
+					match: {
+						'thai.author.prefix': {
+							query: search,
+							fuzziness: '2',
+							max_expansions: 50,
+							prefix_length: 0,
+						},
+					},
+				},
+				{
+					match: {
+						'eng.author.first_name': {
+							query: search,
+							fuzziness: '2',
+							max_expansions: 50,
+							prefix_length: 0,
+						},
+					},
+				},
+				{
+					match: {
+						'thai.author.first_name': {
+							query: search,
+							fuzziness: '2',
+							max_expansions: 50,
+							prefix_length: 0,
+						},
+					},
+				},
+				{
+					match: {
+						'eng.author.last_name': {
+							query: search,
+							fuzziness: '2',
+							max_expansions: 50,
+							prefix_length: 0,
+						},
+					},
+				},
+				{
+					match: {
+						'thai.author.last_name': {
+							query: search,
+							fuzziness: '2',
+							max_expansions: 50,
+							prefix_length: 0,
+						},
+					},
+				},
+			)
+		} else {
+			queryText.bool.should.push({
+				match_all: {},
+			})
+		}
+
+		if (academic_year || degree || project_type || advisor_id) {
+			let filter = []
+			if (academic_year) {
+				filter.push({
+					term: {
+						academic_year: {
+							value: academic_year,
+						},
+					},
+				})
+			}
+			if (degree) {
+				// filter.push({
+				// 	match: {
+				// 		degree: {
+				// 			query: degree,
+				// 		},
+				// 	},
+				// })
+				queryText.bool.should.push({
+					match: {
+						degree: {
+							query: degree,
+							fuzziness: '2',
+							max_expansions: 50,
+							prefix_length: 0,
+						},
+					},
+				})
+			}
+			if (project_type) {
+				filter.push({
+					match: {
+						project_type: {
+							query: project_type,
+						},
+					},
+				})
+			}
+			if (advisor_id) {
+				filter.push({
+					term: {
+						advisor_id: {
+							value: advisor_id,
+						},
+					},
+				})
+			}
+			queryText.bool['filter'] = filter
+		}
+
 		const result = await elastic_client.search({
 			index: 'thesisdocument',
-			query: {
-				multi_match: {
-					fields: ['eng.document.title', 'thai.document.title', 'eng.document.abstract', 'thai.document.abstract'],
-					query: `${search}`,
-					fuzziness: 'AUTO',
-				},
-			},
+			query: queryText,
 		})
 
 		let results = await getSourceResult(result)
 		let ranking = await rankSearch(search, results)
 
-		res.send(setStatusSuccess(httpStatus.GET_SUCCESS, ranking['url']))
+		res.send(setStatusSuccess(httpStatus.GET_SUCCESS, ranking['url'], ranking['url'].length))
 	} catch (error) {
 		console.log(error)
 		res.send(setStatusError(error, null))
