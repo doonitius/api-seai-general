@@ -29,9 +29,28 @@ async function getSourceResult(result) {
 	}
 }
 
+// page 1 size 5: 
+// from 0 size 5
+
+// page 2 size 5: 
+// from 6 size 5
+
+// page 3 size 5: 
+// from 11 size 5
+
+async function pagination(query, page_no, page_size) {
+	try {
+		query.size = page_size
+		query.from = (page_no - 1) * page_size
+		return query
+	} catch (error) {
+		throw error
+	}
+}
+
 module.exports.inquiryProject = async (req, res) => {
 	try {
-		const { search, academic_year, project_type, advisor_id, degree } = req.query
+		const { search, academic_year, project_type, advisor_id, degree, page_no, page_size } = req.query
 
 		// let result
 
@@ -342,10 +361,17 @@ module.exports.inquiryProject = async (req, res) => {
 			queryText.bool['filter'] = filter
 		}
 
-		const result = await elastic_client.search({
+		let queryConfig = {
 			index: 'thesisdocument',
 			query: queryText,
-		})
+		}
+
+		if (page_no && page_size){
+			queryConfig = await pagination(queryConfig, page_no, page_size)
+		}
+
+
+		const result = await elastic_client.search(queryConfig)
 
 		let results = await getSourceResult(result)
 		let ranking = await rankSearch(search, results)
