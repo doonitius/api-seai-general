@@ -6,7 +6,7 @@ const thesis_project = require('../model/thesis_project_model')
 const elastic_client = require('../config/elastic_client')
 const { upLoadFile, loadFile } = require('../middleware/upload_to_azure')
 const { stringify } = require('uuid')
-
+const thesisIndex = 'thesisdocument'
 async function rankSearch(results, query) {
 	try {
 		// console.log(new Similarity(query, results))
@@ -362,7 +362,7 @@ module.exports.inquiryProject = async (req, res) => {
 		}
 
 		let queryConfig = {
-			index: 'thesisdocument',
+			index: thesisIndex,
 			query: queryText,
 		}
 
@@ -375,8 +375,11 @@ module.exports.inquiryProject = async (req, res) => {
 
 		let results = await getSourceResult(result)
 		let ranking = await rankSearch(search, results)
-
-		res.send(setStatusSuccess(httpStatus.GET_SUCCESS, ranking['url'], ranking['url'].length))
+		
+		let foundTotal = result.hits.total['value']
+    const totalPage = page_size ? Math.ceil(foundTotal / page_size).toString() : '1'
+		
+		res.send(setStatusSuccess(httpStatus.GET_SUCCESS, ranking['url'], foundTotal, totalPage))
 	} catch (error) {
 		console.log(error)
 		res.send(setStatusError(error, null))
@@ -389,8 +392,13 @@ module.exports.getProjectById = async (req, res) => {
 
 		const foundProject = await thesis_project.findOne({ _id: project_id }, { __v: 0 })
 		if (!foundProject) throw httpStatus.NOT_EXIST
-
-		res.send(setStatusSuccess(httpStatus.GET_SUCCESS, foundProject))
+		const { _id } = foundProject
+		delete foundProject._doc['_id']
+		const result = {
+			...foundProject._doc,
+			project_id: _id,
+		}
+		res.send(setStatusSuccess(httpStatus.GET_SUCCESS, result))
 	} catch (error) {
 		console.log(error)
 		res.send(setStatusError(error, null))
@@ -439,19 +447,28 @@ module.exports.uploadProjectFile = async (req, res) => {
 
 module.exports.createProject = async (req, res) => {
 	try {
+		const newDoc = {
+			...req.body
+		}
 		// const fileName = `${uuid.v4()}.pdf`
-		const newProject = new thesis_project({
-			...req.body,
-			// file_name: fileName,
-		})
+		const newProject = new thesis_project(newDoc)
 
 		const savedProject = await newProject.save()
+		
+		const { _id } = savedProject
+		newDoc['project_id'] = _id
+
+		const savedElastic = await elastic_client.index({
+			index: thesisIndex,
+			body: newDoc
+		})
+
 
 		// if (savedProject && (req.files || req.files.thesis_file)) {
 		//   await upLoadFile(req.files.thesis_file, fileName)
 		// }
 
-		res.send(setStatusSuccess(httpStatus.CREATE_SUCCESS, savedProject))
+		res.send(setStatusSuccess(httpStatus.CREATE_SUCCESS, null))
 	} catch (error) {
 		console.error(error)
 		res.send(setStatusError(error, null))

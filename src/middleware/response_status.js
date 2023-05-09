@@ -1,6 +1,6 @@
 const res = require('express/lib/response')
 
-module.exports.setStatusSuccess = (status, data, total) => {
+module.exports.setStatusSuccess = (status, data, total, total_page) => {
   const result = {
     status: {
       code: '',
@@ -14,6 +14,7 @@ module.exports.setStatusSuccess = (status, data, total) => {
   result.status.description = status.description
   result.data = data
   result.total = total
+  result.total_page = total_page
 
   res.status(status.code)
   return result
