@@ -21,6 +21,8 @@ async function getSourceResult(result) {
 		let results = []
 		for (let val of result['hits'].hits) {
 			let source = val['_source']
+			let doc_id = val['_id']
+			source['project_id'] = doc_id
 			results.push(source)
 		}
 		return results
@@ -29,13 +31,13 @@ async function getSourceResult(result) {
 	}
 }
 
-// page 1 size 5: 
+// page 1 size 5:
 // from 0 size 5
 
-// page 2 size 5: 
+// page 2 size 5:
 // from 6 size 5
 
-// page 3 size 5: 
+// page 3 size 5:
 // from 11 size 5
 
 async function pagination(query, page_no, page_size) {
@@ -302,7 +304,7 @@ module.exports.inquiryProject = async (req, res) => {
 							prefix_length: 0,
 						},
 					},
-				},
+				}
 			)
 		} else {
 			queryText.bool.should.push({
@@ -366,19 +368,18 @@ module.exports.inquiryProject = async (req, res) => {
 			query: queryText,
 		}
 
-		if (page_no && page_size){
+		if (page_no && page_size) {
 			queryConfig = await pagination(queryConfig, page_no, page_size)
 		}
-
 
 		const result = await elastic_client.search(queryConfig)
 
 		let results = await getSourceResult(result)
 		let ranking = await rankSearch(search, results)
-		
+
 		let foundTotal = result.hits.total['value']
-    const totalPage = page_size ? Math.ceil(foundTotal / page_size).toString() : '1'
-		
+		const totalPage = page_size ? Math.ceil(foundTotal / page_size).toString() : '1'
+
 		res.send(setStatusSuccess(httpStatus.GET_SUCCESS, ranking['url'], foundTotal, totalPage))
 	} catch (error) {
 		console.log(error)
@@ -448,21 +449,20 @@ module.exports.uploadProjectFile = async (req, res) => {
 module.exports.createProject = async (req, res) => {
 	try {
 		const newDoc = {
-			...req.body
+			...req.body,
 		}
 		// const fileName = `${uuid.v4()}.pdf`
 		const newProject = new thesis_project(newDoc)
 
 		const savedProject = await newProject.save()
-		
+
 		const { _id } = savedProject
-		newDoc['project_id'] = _id
 
-		const savedElastic = await elastic_client.index({
+		await elastic_client.index({
 			index: thesisIndex,
-			body: newDoc
+			id: _id,
+			body: newDoc,
 		})
-
 
 		// if (savedProject && (req.files || req.files.thesis_file)) {
 		//   await upLoadFile(req.files.thesis_file, fileName)
@@ -484,6 +484,12 @@ module.exports.updateProject = async (req, res) => {
 		}
 		const updateProject = await thesis_project.updateOne({ _id: project_id }, { $set: updatePayload })
 
+		await elastic_client.update({
+			index: thesisIndex,
+			id: project_id,
+			doc: updatePayload
+		})
+
 		// if (updateProject && (req.files || req.files.thesis_file)) {
 		//   const existFile = await thesis_project.findOne({ _id: doc_id })
 		//   const { file_name } = existFile
@@ -497,6 +503,56 @@ module.exports.updateProject = async (req, res) => {
 		res.send(setStatusSuccess(httpStatus.UPDATE_SUCCESS, updateProject))
 	} catch (error) {
 		console.error(error)
+		res.send(setStatusError(error, null))
+	}
+}
+
+module.exports.importJSONToElasticsearch = async (req, res) => {
+	try {
+		if (req.files || req.files.attachment) {
+			const jsonFile = req.files.attachment
+
+			const data = JSON.parse(jsonFile.data)
+
+			for (let val in data) {
+				data[val]._id = data[val]._id['$oid']
+				let advisor_id = data[val].advisor_id
+				data[val].advisor_id = []
+				for (let advisor in advisor_id) {
+					data[val].advisor_id.push(advisor_id[advisor]['$oid'])
+				}
+				delete data[val]._id
+			}
+
+			const body = data.flatMap((doc) => [{ index: { _index: thesisIndex, _id: doc._id } }, doc])
+			console.log(body);
+			const bulkRes = await elastic_client.bulk({ refresh: true, body })
+			console.log(bulkRes)
+			if (bulkRes.errors) {
+				const erroredDocuments = []
+				// The items array has the same order of the dataset we just indexed.
+				// The presence of the `error` key indicates that the operation
+				// that we did for the document has failed.
+				bulkRes.items.forEach((action, i) => {
+					const operation = Object.keys(action)[0]
+					if (action[operation].error) {
+						erroredDocuments.push({
+							// If the status is 429 it means that you can retry the document,
+							// otherwise it's very likely a mapping error, and you should
+							// fix the document before to try it again.
+							status: action[operation].status,
+							error: action[operation].error,
+							operation: body[i * 2],
+							document: body[i * 2 + 1],
+						})
+					}
+				})
+				console.log(erroredDocuments)
+			}
+		}
+		res.send(setStatusSuccess(httpStatus.CREATE_SUCCESS, null))
+	} catch (error) {
+		console.log(error)
 		res.send(setStatusError(error, null))
 	}
 }
