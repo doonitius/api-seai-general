@@ -16,15 +16,15 @@ const nameSchema = mongoose.Schema({
 })
 
 const documentSchema = mongoose.Schema({
-  title: {
-    type: String,
-  },
-  abstract: {
-    type: String,
-  },
-  keywords: {
-    type: String,
-  },
+	title: {
+		type: String,
+	},
+	abstract: {
+		type: String,
+	},
+	keywords: {
+		type: Array,
+	},
 })
 
 const thesis_project = mongoose.Schema(
@@ -180,10 +180,13 @@ const thesis_project = mongoose.Schema(
 		// advisor_lastname_th_2: {
 		//   type: String,
 		// },
-		advisor: {
+		advisor_id: {
 			type: Array,
 		},
 		degree: {
+			type: String,
+		},
+		academic_year: {
 			type: String,
 		},
 		project_type: {

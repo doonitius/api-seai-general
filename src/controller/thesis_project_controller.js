@@ -3,6 +3,7 @@ const httpStatus = require('../middleware/http_status')
 const uuid = require('uuid')
 const { Similarity } = require('txtai')
 const thesis_project = require('../model/thesis_project_model')
+const keyword = require('../model/keyword_model')
 const elastic_client = require('../config/elastic_client')
 const { upLoadFile, loadFile } = require('../middleware/upload_to_azure')
 const { stringify } = require('uuid')
@@ -22,7 +23,6 @@ async function getSourceResult(result) {
 		for (let val of result['hits'].hits) {
 			let source = val['_source']
 			let doc_id = val['_id']
-			console.log(val);
 			source['project_id'] = doc_id
 			results.push(source)
 		}
@@ -31,15 +31,6 @@ async function getSourceResult(result) {
 		throw error
 	}
 }
-
-// page 1 size 5:
-// from 0 size 5
-
-// page 2 size 5:
-// from 6 size 5
-
-// page 3 size 5:
-// from 11 size 5
 
 async function pagination(query, page_no, page_size) {
 	try {
@@ -53,70 +44,7 @@ async function pagination(query, page_no, page_size) {
 
 module.exports.inquiryProject = async (req, res) => {
 	try {
-		const { search, academic_year, project_type, advisor_id, degree, page_no, page_size } = req.query
-
-		// let result
-
-		// if (search && search != '') {
-		//   let pipeline = [
-		//     {
-		//       $search: {
-		//         index: 'document',
-		//         compound: {
-		//           should: [
-		//             {
-		//               autocomplete: {
-		//                 query: `${search}`,
-		//                 path: 'eng.document.title',
-		//                 match: {
-		//                   maxEdits: 2,
-		//                   prefixLength: 3,
-		//                 },
-		//               },
-		//             },
-		//             {
-		//               autocomplete: {
-		//                 query: `${search}`,
-		//                 path: 'eng.document.abstract',
-		//                 match: {
-		//                   maxEdits: 2,
-		//                   prefixLength: 3,
-		//                 },
-		//               },
-		//             },
-		//             {
-		//               autocomplete: {
-		//                 query: `${search}`,
-		//                 path: 'thai.document.title',
-		//                 match: {
-		//                   maxEdits: 2,
-		//                   prefixLength: 3,
-		//                 },
-		//               },
-		//             },
-		//             {
-		//               autocomplete: {
-		//                 query: `${search}`,
-		//                 path: 'thai.document.abstract',
-		//                 match: {
-		//                   maxEdits: 2,
-		//                   prefixLength: 3,
-		//                 },
-		//               },
-		//             },
-		//           ],
-		//           minimumShouldMatch: 0,
-		//         },
-		//       },
-		//     },
-		//     {
-		//       $match: search ? {} : { $expr: { $eq: [true, true] } },
-		//     },
-		//   ]
-		//   result = await thesis_project.aggregate(pipeline)
-		// } else {
-		//   result = await thesis_project.find()
-		// }
+		const { search, academic_year, project_type, advisor_id, degree, keyword, page_no, page_size } = req.query
 
 		let queryText = {
 			bool: {
@@ -316,48 +244,65 @@ module.exports.inquiryProject = async (req, res) => {
 		if (academic_year || degree || project_type || advisor_id) {
 			let filter = []
 			if (academic_year) {
+				const academic_year_arr = academic_year.split(',')
 				filter.push({
-					term: {
-						academic_year: {
-							value: academic_year,
-						},
+					terms: {
+						academic_year: academic_year_arr,
+						boost: 1,
 					},
 				})
 			}
 			if (degree) {
-				// filter.push({
+				const degree_arr = degree.split(',')
+				filter.push({
+					terms: {
+						degree: degree_arr,
+						boost: 1,
+					},
+				})
+				// queryText.bool.should.push({
 				// 	match: {
 				// 		degree: {
 				// 			query: degree,
+				// 			fuzziness: '2',
+				// 			max_expansions: 50,
+				// 			prefix_length: 0,
 				// 		},
 				// 	},
 				// })
-				queryText.bool.should.push({
-					match: {
-						degree: {
-							query: degree,
-							fuzziness: '2',
-							max_expansions: 50,
-							prefix_length: 0,
-						},
-					},
-				})
 			}
 			if (project_type) {
+				const project_type_arr = project_type.split(',')
 				filter.push({
-					match: {
-						project_type: {
-							query: project_type,
-						},
+					terms: {
+						project_type: project_type_arr,
+						boost: 1,
 					},
 				})
 			}
 			if (advisor_id) {
+				const advisor_id_arr = advisor_id.split(',')
 				filter.push({
-					term: {
-						advisor_id: {
-							value: advisor_id,
-						},
+					terms: {
+						advisor_id: advisor_id_arr,
+						boost: 1,
+					},
+				})
+			}
+			if (keyword) {
+				const keyword_arr = keyword.split(',')
+				filter.push(
+					{
+					terms: {
+						'eng.document.keyword': keyword_arr,
+						boost: 2,
+					},
+				})
+				filter.push(
+					{
+					terms: {
+						'thai.document.keyword': keyword_arr,
+						boost: 2,
 					},
 				})
 			}
@@ -452,7 +397,6 @@ module.exports.createProject = async (req, res) => {
 		const newDoc = {
 			...req.body,
 		}
-		// const fileName = `${uuid.v4()}.pdf`
 		const newProject = new thesis_project(newDoc)
 
 		const savedProject = await newProject.save()
@@ -464,10 +408,6 @@ module.exports.createProject = async (req, res) => {
 			id: _id,
 			body: newDoc,
 		})
-
-		// if (savedProject && (req.files || req.files.thesis_file)) {
-		//   await upLoadFile(req.files.thesis_file, fileName)
-		// }
 
 		res.send(setStatusSuccess(httpStatus.CREATE_SUCCESS, null))
 	} catch (error) {
@@ -488,18 +428,8 @@ module.exports.updateProject = async (req, res) => {
 		await elastic_client.update({
 			index: thesisIndex,
 			id: project_id,
-			doc: updatePayload
+			doc: updatePayload,
 		})
-
-		// if (updateProject && (req.files || req.files.thesis_file)) {
-		//   const existFile = await thesis_project.findOne({ _id: doc_id })
-		//   const { file_name } = existFile
-		//   if (file_name === null || file_name === '') {
-		//     fileName = `${uuid.v4()}.pdf`
-		//   }
-		//   await thesis_project.updateOne({ _id: doc_id }, { $set: { file_name: fileName } })
-		//   await upLoadFile(req.files.thesis_file, fileName)
-		// }
 
 		res.send(setStatusSuccess(httpStatus.UPDATE_SUCCESS, updateProject))
 	} catch (error) {
@@ -522,32 +452,29 @@ module.exports.importJSONToElasticsearch = async (req, res) => {
 				for (let advisor in advisor_id) {
 					data[val].advisor_id.push(advisor_id[advisor]['$oid'])
 				}
-				console.log(data[val]._id);
+				console.log(data[val]._id)
 			}
 
-			const body = data.flatMap((doc) => [{ index: { _index: thesisIndex, _id: doc._id } }, {
-				thai: doc.thai, 
-				eng: doc.eng,
-				academic_year: doc.academic_year,
-				degree: doc.degree,
-				project_type: doc.project_type,
-				advisor_id: doc.advisor_id
-			}])
-			console.log(body);
+			const body = data.flatMap((doc) => [
+				{ index: { _index: thesisIndex, _id: doc._id } },
+				{
+					thai: doc.thai,
+					eng: doc.eng,
+					academic_year: doc.academic_year,
+					degree: doc.degree,
+					project_type: doc.project_type,
+					advisor_id: doc.advisor_id,
+				},
+			])
+			console.log(body)
 			const bulkRes = await elastic_client.bulk({ refresh: true, body })
 			console.log(bulkRes)
 			if (bulkRes.errors) {
 				const erroredDocuments = []
-				// The items array has the same order of the dataset we just indexed.
-				// The presence of the `error` key indicates that the operation
-				// that we did for the document has failed.
 				bulkRes.items.forEach((action, i) => {
 					const operation = Object.keys(action)[0]
 					if (action[operation].error) {
 						erroredDocuments.push({
-							// If the status is 429 it means that you can retry the document,
-							// otherwise it's very likely a mapping error, and you should
-							// fix the document before to try it again.
 							status: action[operation].status,
 							error: action[operation].error,
 							operation: body[i * 2],
@@ -559,6 +486,67 @@ module.exports.importJSONToElasticsearch = async (req, res) => {
 			}
 		}
 		res.send(setStatusSuccess(httpStatus.CREATE_SUCCESS, null))
+	} catch (error) {
+		console.log(error)
+		res.send(setStatusError(error, null))
+	}
+}
+
+module.exports.truncateElastic = async (req, res) => {
+	try {
+		const allDoc = await elastic_client.search({
+			index: thesisIndex,
+			size: 30,
+			query: {
+				match_all: {},
+			},
+		})
+
+		let result = await getSourceResult(allDoc)
+		for (let i of result) {
+			const { project_id } = i
+			await elastic_client.delete({
+				index: thesisIndex,
+				id: project_id,
+			})
+		}
+
+		res.send(setStatusSuccess(httpStatus.DELETE_SUCCESS, null))
+	} catch (error) {
+		res.send(setStatusError(error, null))
+	}
+}
+
+module.exports.processKeyword = async (req, res) => {
+	try {
+		const result = await thesis_project.find()
+		for (let i of result) {
+			let eng_key = i.eng.document.keywords
+			let th_key = i.thai.document.keywords
+
+			if(eng_key === null || th_key === null) continue
+
+			if (eng_key.length && eng_key != null) {
+				for (let j of eng_key) {
+					const isExist = await keyword.findOne({ keyword: j })
+					if (!isExist) {
+						const newKeyword = new keyword({ keyword: j })
+						await newKeyword.save()
+					}
+				}
+			}
+			if (th_key.length && th_key != null) {
+				for (let j of th_key) {
+					const isExist = await keyword.findOne({ keyword: j })
+					if (!isExist) {
+						const newKeyword = new keyword({ keyword: j })
+						await newKeyword.save()
+					}
+				}
+			}
+		}
+
+		res.send(setStatusSuccess(httpStatus.GET_SUCCESS, null))
 	} catch (error) {
 		console.log(error)
 		res.send(setStatusError(error, null))
