@@ -22,6 +22,7 @@ async function getSourceResult(result) {
 		for (let val of result['hits'].hits) {
 			let source = val['_source']
 			let doc_id = val['_id']
+			console.log(val);
 			source['project_id'] = doc_id
 			results.push(source)
 		}
@@ -521,10 +522,17 @@ module.exports.importJSONToElasticsearch = async (req, res) => {
 				for (let advisor in advisor_id) {
 					data[val].advisor_id.push(advisor_id[advisor]['$oid'])
 				}
-				delete data[val]._id
+				console.log(data[val]._id);
 			}
 
-			const body = data.flatMap((doc) => [{ index: { _index: thesisIndex, _id: doc._id } }, doc])
+			const body = data.flatMap((doc) => [{ index: { _index: thesisIndex, _id: doc._id } }, {
+				thai: doc.thai, 
+				eng: doc.eng,
+				academic_year: doc.academic_year,
+				degree: doc.degree,
+				project_type: doc.project_type,
+				advisor_id: doc.advisor_id
+			}])
 			console.log(body);
 			const bulkRes = await elastic_client.bulk({ refresh: true, body })
 			console.log(bulkRes)

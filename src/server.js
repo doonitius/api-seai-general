@@ -7,7 +7,11 @@ const express_fileupload = require('express-fileupload')
 
 require('dotenv').config()
 
-app.use(cors())
+app.use(
+	cors({
+		methods: ['GET', 'POST', 'DELETE', 'UPDATE', 'PUT', 'PATCH'],
+	})
+)
 
 app.use(express())
 app.use(express.json())
