@@ -45,7 +45,6 @@ async function pagination(query, page_no, page_size) {
 module.exports.inquiryProject = async (req, res) => {
 	try {
 		const { search, academic_year, project_type, advisor_id, degree, keyword, page_no, page_size } = req.query
-
 		let queryText = {
 			bool: {
 				should: [],
@@ -241,7 +240,7 @@ module.exports.inquiryProject = async (req, res) => {
 			})
 		}
 
-		if (academic_year || degree || project_type || advisor_id) {
+		if (academic_year || degree || project_type || advisor_id || keyword) {
 			let filter = []
 			if (academic_year) {
 				const academic_year_arr = academic_year.split(',')
@@ -260,16 +259,6 @@ module.exports.inquiryProject = async (req, res) => {
 						boost: 1,
 					},
 				})
-				// queryText.bool.should.push({
-				// 	match: {
-				// 		degree: {
-				// 			query: degree,
-				// 			fuzziness: '2',
-				// 			max_expansions: 50,
-				// 			prefix_length: 0,
-				// 		},
-				// 	},
-				// })
 			}
 			if (project_type) {
 				const project_type_arr = project_type.split(',')
@@ -291,19 +280,24 @@ module.exports.inquiryProject = async (req, res) => {
 			}
 			if (keyword) {
 				const keyword_arr = keyword.split(',')
-				filter.push(
-					{
-					terms: {
-						'eng.document.keyword': keyword_arr,
-						boost: 2,
-					},
-				})
-				filter.push(
-					{
-					terms: {
-						'thai.document.keyword': keyword_arr,
-						boost: 2,
-					},
+				console.log(keyword_arr)
+				filter.push({
+					bool: {
+						should: [
+							{
+								terms: {
+									'eng.document.keywords': keyword_arr,
+									boost: 1,
+								},
+							},
+							{
+								terms: {
+									'thai.document.keywords': keyword_arr,
+									boost: 1,
+								},
+							}
+						]
+					}
 				})
 			}
 			queryText.bool['filter'] = filter
