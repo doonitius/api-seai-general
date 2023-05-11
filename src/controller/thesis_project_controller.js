@@ -10,8 +10,37 @@ const { stringify } = require('uuid')
 const thesisIndex = 'thesisdocument'
 async function rankSearch(results, query) {
 	try {
-		// console.log(new Similarity(query, results))
 		return new Similarity(query, results)
+	} catch (error) {
+		throw error
+	}
+}
+
+async function identifyNewKeyword(result) {
+	try {
+		for (let i of result) {
+			let eng_key = i.eng.document.keywords
+			let th_key = i.thai.document.keywords
+
+			if (eng_key.length && eng_key != null) {
+				for (let j of eng_key) {
+					const isExist = await keyword.findOne({ keyword: j })
+					if (!isExist) {
+						const newKeyword = new keyword({ keyword: j })
+						await newKeyword.save()
+					}
+				}
+			}
+			if (th_key.length && th_key != null) {
+				for (let j of th_key) {
+					const isExist = await keyword.findOne({ keyword: j })
+					if (!isExist) {
+						const newKeyword = new keyword({ keyword: j })
+						await newKeyword.save()
+					}
+				}
+			}
+		}
 	} catch (error) {
 		throw error
 	}
@@ -280,7 +309,6 @@ module.exports.inquiryProject = async (req, res) => {
 			}
 			if (keyword) {
 				const keyword_arr = keyword.split(',')
-				console.log(keyword_arr)
 				filter.push({
 					bool: {
 						should: [
@@ -295,9 +323,9 @@ module.exports.inquiryProject = async (req, res) => {
 									'thai.document.keywords': keyword_arr,
 									boost: 1,
 								},
-							}
-						]
-					}
+							},
+						],
+					},
 				})
 			}
 			queryText.bool['filter'] = filter
@@ -322,7 +350,6 @@ module.exports.inquiryProject = async (req, res) => {
 
 		res.send(setStatusSuccess(httpStatus.GET_SUCCESS, ranking['url'], foundTotal, totalPage))
 	} catch (error) {
-		console.log(error)
 		res.send(setStatusError(error, null))
 	}
 }
@@ -341,7 +368,6 @@ module.exports.getProjectById = async (req, res) => {
 		}
 		res.send(setStatusSuccess(httpStatus.GET_SUCCESS, result))
 	} catch (error) {
-		console.log(error)
 		res.send(setStatusError(error, null))
 	}
 }
@@ -388,6 +414,7 @@ module.exports.uploadProjectFile = async (req, res) => {
 
 module.exports.createProject = async (req, res) => {
 	try {
+		await identifyNewKeyword([req.body])
 		const newDoc = {
 			...req.body,
 		}
@@ -405,7 +432,6 @@ module.exports.createProject = async (req, res) => {
 
 		res.send(setStatusSuccess(httpStatus.CREATE_SUCCESS, null))
 	} catch (error) {
-		console.error(error)
 		res.send(setStatusError(error, null))
 	}
 }
@@ -413,7 +439,7 @@ module.exports.createProject = async (req, res) => {
 module.exports.updateProject = async (req, res) => {
 	try {
 		const { project_id } = req.params
-
+		await identifyNewKeyword([req.body])
 		const updatePayload = {
 			...req.body,
 		}
@@ -427,7 +453,6 @@ module.exports.updateProject = async (req, res) => {
 
 		res.send(setStatusSuccess(httpStatus.UPDATE_SUCCESS, updateProject))
 	} catch (error) {
-		console.error(error)
 		res.send(setStatusError(error, null))
 	}
 }
@@ -481,7 +506,6 @@ module.exports.importJSONToElasticsearch = async (req, res) => {
 		}
 		res.send(setStatusSuccess(httpStatus.CREATE_SUCCESS, null))
 	} catch (error) {
-		console.log(error)
 		res.send(setStatusError(error, null))
 	}
 }
@@ -518,7 +542,7 @@ module.exports.processKeyword = async (req, res) => {
 			let eng_key = i.eng.document.keywords
 			let th_key = i.thai.document.keywords
 
-			if(eng_key === null || th_key === null) continue
+			if (eng_key === null || th_key === null) continue
 
 			if (eng_key.length && eng_key != null) {
 				for (let j of eng_key) {
@@ -542,7 +566,6 @@ module.exports.processKeyword = async (req, res) => {
 
 		res.send(setStatusSuccess(httpStatus.GET_SUCCESS, null))
 	} catch (error) {
-		console.log(error)
 		res.send(setStatusError(error, null))
 	}
 }

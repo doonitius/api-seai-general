@@ -16,7 +16,7 @@ module.exports.setStatusSuccess = (status, data, total, total_page) => {
   result.total = total
   result.total_page = total_page
 
-  res.status(status.code)
+  res.status(parseInt(status.code))
   return result
 }
 
@@ -35,6 +35,6 @@ module.exports.setStatusError = (status, data) => {
 
   if (status.description && status.description === 'Validate error') result.status.errors = status.errors
 
-  res.status(status.code ? status.code : 500)
+  res.status(parseInt(status.code ? status.code : 500))
   return result
 }

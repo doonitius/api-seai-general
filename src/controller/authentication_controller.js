@@ -34,7 +34,7 @@ module.exports.login = async (req, res) => {
 
     const foundUsername = await user.findOne({ username })
     if (!foundUsername) {
-      throw error
+      throw new error
     }
 
 
@@ -43,7 +43,7 @@ module.exports.login = async (req, res) => {
     const correctPassword = await comparePassword(password, passwordHashed)
 
     if (!correctPassword) {
-      throw error
+      throw new error
     }
 
     const accessToken = jwtGenerate(foundUsername)
@@ -57,6 +57,7 @@ module.exports.login = async (req, res) => {
 
 		res.send(result)
 	} catch (error) {
+		console.log(error);
 		res.send(setStatusError(error, null))
 	}
 }
