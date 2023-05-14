@@ -13,12 +13,12 @@ module.exports.comparePassword = async (plaintextPassword, hash) => {
 }
 
 module.exports.jwtGenerate = (user) => {
-	const accessToken = jwt.sign({ username: user.username }, process.env.ACCESS_TOKEN_SECRET, { expiresIn: '1m', algorithm: 'HS256' })
+	const accessToken = jwt.sign({ username: user.username }, process.env.ACCESS_TOKEN_SECRET, { expiresIn: '1m' })
 	return accessToken
 }
 
 module.exports.jwtRefreshTokenGenerate = (user) => {
-	const refreshToken = jwt.sign({ username: user.username }, process.env.REFRESH_TOKEN_SECRET, { expiresIn: '1d', algorithm: 'HS256' })
+	const refreshToken = jwt.sign({ username: user.username }, process.env.REFRESH_TOKEN_SECRET, { expiresIn: '1d' })
 	return refreshToken
 }
 
