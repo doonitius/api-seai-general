@@ -6,9 +6,7 @@ const keyword = require('../model/keyword_model')
 module.exports.inquiryKeyword = async (req, res) => {
 	try {
 		const { search } = req.query
-
 		let result
-
 		if (search && search != '') {
 			let pipeline = [
 				{
