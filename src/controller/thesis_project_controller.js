@@ -80,7 +80,6 @@ module.exports.inquiryProject = async (req, res) => {
 				should: [],
 			},
 		}
-
 		if (search && search != '') {
 			queryText.bool.should.push(
 				{
