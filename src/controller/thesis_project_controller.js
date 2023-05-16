@@ -8,6 +8,7 @@ const elastic_client = require('../config/elastic_client')
 const { upLoadFile, loadFile } = require('../middleware/upload_to_azure')
 const { stringify } = require('uuid')
 const thesisIndex = 'thesisdocument'
+const thesisToken = 'thesistokenizer'
 async function rankSearch(results, query) {
 	try {
 		return new Similarity(query, results)
@@ -89,6 +90,7 @@ module.exports.inquiryProject = async (req, res) => {
 							fuzziness: '2',
 							max_expansions: 50,
 							prefix_length: 0,
+							boost: 5,
 						},
 					},
 				},
@@ -99,6 +101,7 @@ module.exports.inquiryProject = async (req, res) => {
 							fuzziness: '2',
 							max_expansions: 50,
 							prefix_length: 0,
+							boost: 5,
 						},
 					},
 				},
@@ -109,6 +112,7 @@ module.exports.inquiryProject = async (req, res) => {
 							fuzziness: '2',
 							max_expansions: 50,
 							prefix_length: 0,
+							boost: 3,
 						},
 					},
 				},
@@ -119,6 +123,7 @@ module.exports.inquiryProject = async (req, res) => {
 							fuzziness: '2',
 							max_expansions: 50,
 							prefix_length: 0,
+							boost: 3,
 						},
 					},
 				},
@@ -129,6 +134,7 @@ module.exports.inquiryProject = async (req, res) => {
 							fuzziness: '2',
 							max_expansions: 50,
 							prefix_length: 0,
+							boost: 3,
 						},
 					},
 				},
@@ -139,6 +145,7 @@ module.exports.inquiryProject = async (req, res) => {
 							fuzziness: '2',
 							max_expansions: 50,
 							prefix_length: 0,
+							boost: 3,
 						},
 					},
 				},
@@ -269,6 +276,36 @@ module.exports.inquiryProject = async (req, res) => {
 			})
 		}
 
+		// if (search && search != '') {
+		// 	queryText.bool.should.push(
+		// 		// {
+		// 		// 	match: {
+		// 		// 		'eng.document.title': {
+		// 		// 			query: search,
+		// 		// 			fuzziness: '2',
+		// 		// 			max_expansions: 50,
+		// 		// 			prefix_length: 0,
+		// 		// 			boost: 5,
+		// 		// 		},
+		// 		// 	},
+		// 		// },
+		// 		{
+		// 			suggest: {
+		// 				result: {
+		// 					prefix: search,
+		// 					completion: {
+		// 						field: 'eng.document.title',
+		// 					},
+		// 				},
+		// 			},
+		// 		}
+		// 	)
+		// } else {
+		// 	queryText.bool.should.push({
+		// 		match_all: {},
+		// 	})
+		// }
+
 		if (academic_year || degree || project_type || advisor_id || keyword) {
 			let filter = []
 			if (academic_year) {
@@ -342,6 +379,7 @@ module.exports.inquiryProject = async (req, res) => {
 
 		const result = await elastic_client.search(queryConfig)
 
+		// console.log(JSON.stringify(result,null, 2))
 		let results = await getSourceResult(result)
 		let ranking = await rankSearch(search, results)
 
@@ -400,10 +438,29 @@ module.exports.uploadProjectFile = async (req, res) => {
 			file_name: fileName,
 		}
 
-		const updateProject = await thesis_project.updateOne({ _id: project_id }, { $set: projectPayload })
+		const existFile = await thesis_project.findOne({ _id: project_id }, { file_name: 1, _id: 0 })
 
-		if (updateProject && (req.files || req.files.thesis_file)) {
-			await upLoadFile(req.files.thesis_file, fileName)
+		if (existFile.file_name) {
+			if (!req.files) {
+				const deleteFile = {
+					file_name: null,
+				}
+				console.log("not req.files");
+				await thesis_project.updateOne({ _id: project_id }, { $set: deleteFile })
+			}
+			if (req.files) {
+				const updateProject = await thesis_project.updateOne({ _id: project_id }, { $set: projectPayload })
+				if (updateProject && req.files.thesis_file) {
+					await upLoadFile(req.files.thesis_file, fileName)
+				}
+			}
+		} else {
+			if (req.files) {
+				const updateProject = await thesis_project.updateOne({ _id: project_id }, { $set: projectPayload })
+				if (updateProject && req.files.thesis_file) {
+					await upLoadFile(req.files.thesis_file, fileName)
+				}
+			}
 		}
 
 		res.send(setStatusSuccess(httpStatus.CREATE_SUCCESS, null))
@@ -457,6 +514,22 @@ module.exports.updateProject = async (req, res) => {
 	}
 }
 
+module.exports.deleteProject = async (req, res) => {
+	try {
+		const { project_id } = req.params
+		await thesis_project.deleteOne({ _id: project_id })
+
+		await elastic_client.delete({
+			index: thesisIndex,
+			id: project_id,
+		})
+
+		res.send(setStatusSuccess(httpStatus.DELETE_SUCCESS, null))
+	} catch (error) {
+		res.send(setStatusError(error, null))
+	}
+}
+
 module.exports.importJSONToElasticsearch = async (req, res) => {
 	try {
 		if (req.files || req.files.attachment) {
@@ -476,6 +549,59 @@ module.exports.importJSONToElasticsearch = async (req, res) => {
 
 			const body = data.flatMap((doc) => [
 				{ index: { _index: thesisIndex, _id: doc._id } },
+				{
+					thai: doc.thai,
+					eng: doc.eng,
+					academic_year: doc.academic_year,
+					degree: doc.degree,
+					project_type: doc.project_type,
+					advisor_id: doc.advisor_id,
+				},
+			])
+			console.log(body)
+			const bulkRes = await elastic_client.bulk({ refresh: true, body })
+			console.log(bulkRes)
+			if (bulkRes.errors) {
+				const erroredDocuments = []
+				bulkRes.items.forEach((action, i) => {
+					const operation = Object.keys(action)[0]
+					if (action[operation].error) {
+						erroredDocuments.push({
+							status: action[operation].status,
+							error: action[operation].error,
+							operation: body[i * 2],
+							document: body[i * 2 + 1],
+						})
+					}
+				})
+				console.log(erroredDocuments)
+			}
+		}
+		res.send(setStatusSuccess(httpStatus.CREATE_SUCCESS, null))
+	} catch (error) {
+		res.send(setStatusError(error, null))
+	}
+}
+
+module.exports.importJSONToNgram = async (req, res) => {
+	try {
+		if (req.files || req.files.attachment) {
+			const jsonFile = req.files.attachment
+
+			const data = JSON.parse(jsonFile.data)
+
+			for (let val in data) {
+				data[val]._id = data[val]._id['$oid']
+				let advisor_id = data[val].advisor_id
+				data[val].advisor_id = []
+				for (let advisor in advisor_id) {
+					data[val].advisor_id.push(advisor_id[advisor]['$oid'])
+				}
+				console.log(data[val]._id)
+			}
+
+			const body = data.flatMap((doc) => [
+				{ index: { _index: thesisToken, _id: doc._id } },
 				{
 					thai: doc.thai,
 					eng: doc.eng,

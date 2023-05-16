@@ -34,9 +34,11 @@ const { thesisProjectSchema } = require('../validation/schemas/thesis_project_va
 router.get('/keyword', thesis_project.processKeyword)
 router.post('/', thesis_project.createProject)
 router.post('/import', thesis_project.importJSONToElasticsearch)
+router.post('/importToNgram', thesis_project.importJSONToNgram)
 router.post('/upload/:project_id', thesis_project.uploadProjectFile)
 router.patch('/:project_id', thesis_project.updateProject)
 router.delete('/truncate-elastic', thesis_project.truncateElastic)
+router.delete('/delete-project/:project_id', thesis_project.deleteProject)
 
 
 module.exports = router
