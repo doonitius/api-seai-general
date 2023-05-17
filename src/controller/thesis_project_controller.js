@@ -6,12 +6,40 @@ const thesis_project = require('../model/thesis_project_model')
 const keyword = require('../model/keyword_model')
 const elastic_client = require('../config/elastic_client')
 const { upLoadFile, loadFile } = require('../middleware/upload_to_azure')
-const { stringify } = require('uuid')
 const thesisIndex = 'thesisdocument'
 const thesisToken = 'thesistokenizer'
-async function rankSearch(results, query) {
+
+async function rankSearch(searchResults, query) {
 	try {
-		return new Similarity(query, results)
+		let service = 'https://txtai-api-nn2mkxpf6q-uc.a.run.app'
+		const english = /^[A-Za-z0-9\s]*$/
+		let result_title
+		if (english.test(query)) {
+			result_title = searchResults.map((result, index) => {
+				searchResults[index].init_id = index
+				if (result.eng.document.title == null) {
+					result.eng.document.title = ''
+				}
+				return result.eng.document.title
+			})
+		} else {
+			result_title = searchResults.map((result, index) => {
+				searchResults[index].init_id = index
+				if (result.thai.document.title == null) {
+					result.thai.document.title = ''
+				}
+				return result.thai.document.title
+			})
+		}
+		const similarity = new Similarity(service)
+		const scores_title = await similarity.similarity(query, result_title)
+		searchResults.sort((a, b) => {
+			const indexA = scores_title.findIndex((item) => item.id === a.init_id)
+			const indexB = scores_title.findIndex((item) => item.id === b.init_id)
+			return indexA - indexB
+		})
+
+		return searchResults
 	} catch (error) {
 		throw error
 	}
@@ -377,16 +405,18 @@ module.exports.inquiryProject = async (req, res) => {
 		}
 
 		const result = await elastic_client.search(queryConfig)
-
-		// console.log(JSON.stringify(result,null, 2))
 		let results = await getSourceResult(result)
-		let ranking = await rankSearch(search, results)
+		let ranking
+		if (results.length > 0) {
+			ranking = await rankSearch(results, search)
+		}
 
 		let foundTotal = result.hits.total['value']
 		const totalPage = page_size ? Math.ceil(foundTotal / page_size).toString() : '1'
 
-		res.send(setStatusSuccess(httpStatus.GET_SUCCESS, ranking['url'], foundTotal, totalPage))
+		res.send(setStatusSuccess(httpStatus.GET_SUCCESS, ranking, foundTotal, totalPage))
 	} catch (error) {
+		console.log(error)
 		res.send(setStatusError(error, null))
 	}
 }
@@ -444,7 +474,7 @@ module.exports.uploadProjectFile = async (req, res) => {
 				const deleteFile = {
 					file_name: null,
 				}
-				console.log("not req.files");
+				console.log('not req.files')
 				await thesis_project.updateOne({ _id: project_id }, { $set: deleteFile })
 			}
 			if (req.files) {
