@@ -399,7 +399,6 @@ module.exports.inquiryProject = async (req, res) => {
 			index: thesisIndex,
 			query: queryText,
 		}
-
 		if (page_no && page_size) {
 			queryConfig = await pagination(queryConfig, page_no, page_size)
 		}
@@ -410,7 +409,6 @@ module.exports.inquiryProject = async (req, res) => {
 		if (results.length > 0 && (search && search != '')) {
 			ranking = await rankSearch(results, search)
 		}
-
 		let foundTotal = result.hits.total['value']
 		const totalPage = page_size ? Math.ceil(foundTotal / page_size).toString() : '1'
 
