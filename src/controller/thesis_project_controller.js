@@ -411,7 +411,6 @@ module.exports.inquiryProject = async (req, res) => {
 		}
 		let foundTotal = result.hits.total['value']
 		const totalPage = page_size ? Math.ceil(foundTotal / page_size).toString() : '1'
-
 		res.send(setStatusSuccess(httpStatus.GET_SUCCESS, ranking, foundTotal, totalPage))
 	} catch (error) {
 		console.log(error)

@@ -7,11 +7,7 @@ const express_fileupload = require('express-fileupload')
 
 require('dotenv').config()
 
-app.use(
-	cors({
-		methods: ['GET', 'POST', 'DELETE', 'UPDATE', 'PUT', 'PATCH'],
-	})
-)
+app.use(cors())
 
 app.use(express())
 app.use(express.json())
@@ -21,33 +17,30 @@ const server = http.createServer(app)
 
 app.use('/general', require('./routes'))
 
-app.get("/health", (req, res) => {
-  res.status(200).send("api-seai-general is running fine")
+app.get('/health', (req, res) => {
+	res.status(200).send('api-seai-general is running fine')
 })
 
 // const client = require('./config/elastic_client.js')
 
 const db_connection = async () => {
-  try {
-    const connect_db = await mongoose.connect(
-      process.env.DB_CLUSTER,
-      {
-        useNewUrlParser: true,
-        useUnifiedTopology: true,
-      }
-    )
-    console.log('general mongoDB connected: ' + connect_db.connection.host)
-  } catch (error) {
-    console.log(error);
-    process.exit(1);
-  }
+	try {
+		const connect_db = await mongoose.connect(process.env.DB_CLUSTER, {
+			useNewUrlParser: true,
+			useUnifiedTopology: true,
+		})
+		console.log('general mongoDB connected: ' + connect_db.connection.host)
+	} catch (error) {
+		console.log(error)
+		process.exit(1)
+	}
 }
 
-const port = process.env.PORT || 3000;
+const port = process.env.PORT || 3000
 
 db_connection().then(() => {
-  server.listen(port, () => {
-    console.log('API Server is running on port ' + port)
-    console.log('check at http://localhost:' + port + '/health')
-  })
+	server.listen(port, () => {
+		console.log('API Server is running on port ' + port)
+		console.log('check at http://localhost:' + port + '/health')
+	})
 })
