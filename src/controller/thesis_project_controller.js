@@ -406,8 +406,8 @@ module.exports.inquiryProject = async (req, res) => {
 
 		const result = await elastic_client.search(queryConfig)
 		let results = await getSourceResult(result)
-		let ranking
-		if (results.length > 0) {
+		let ranking = results
+		if (results.length > 0 && (search && search != '')) {
 			ranking = await rankSearch(results, search)
 		}
 
